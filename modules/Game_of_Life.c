@@ -89,7 +89,8 @@ int main(int argc,char**argv){
     //int size_of_grid=strtol(argv[2],NULL,10);
     int* grid = malloc(size_of_grid* size_of_grid*sizeof(int*));
 
-    
+    double before;
+    GET_TIME(before);
     MPI_Init(NULL,NULL);
     MPI_Comm_size(MPI_COMM_WORLD,&comm_sz);
     MPI_Comm_rank(MPI_COMM_WORLD,&my_rank);
@@ -122,21 +123,22 @@ int main(int argc,char**argv){
     int* above_rcv_buff = malloc(size_of_grid * sizeof(int)); //receiving last row from the grid before the current one
 
     // double before,now;
-    while(births>0){
-        int rank_above = (my_rank == comm_sz - 1)? MPI_PROC_NULL: my_rank + 1;
-        int rank_below = (my_rank == 1) ? MPI_PROC_NULL : my_rank - 1;
+    if(my_rank>0){
+        while(births>0){
+            int rank_above = (my_rank == comm_sz - 1)? MPI_PROC_NULL: my_rank + 1;
+            int rank_below = (my_rank == 1) ? MPI_PROC_NULL : my_rank - 1;
 
-        // Send first row of current local grid and receive first row
-        MPI_Sendrecv(local_matrix,size_of_grid,MPI_INT,rank_below,0
-        ,below_rcv_buff,size_of_grid,MPI_INT,rank_above,0,MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+            // Send first row of current local grid and receive first row
+            MPI_Sendrecv(local_matrix,size_of_grid,MPI_INT,rank_below,0
+            ,below_rcv_buff,size_of_grid,MPI_INT,rank_above,0,MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 
-        MPI_Sendrecv(&local_matrix [(rows_per_process-1)*size_of_grid],size_of_grid,MPI_INT,rank_above,1
-        ,above_rcv_buff,size_of_grid,MPI_INT,rank_below,1,MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-        births--;
-        if(my_rank>0)
+            MPI_Sendrecv(&local_matrix [(rows_per_process-1)*size_of_grid],size_of_grid,MPI_INT,rank_above,1
+            ,above_rcv_buff,size_of_grid,MPI_INT,rank_below,1,MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+            births--;
             updating_grid(local_matrix,rows_per_process,below_rcv_buff,above_rcv_buff);
 
-        MPI_Gather(local_matrix,size_of_grid*size_of_grid/comm_sz,MPI_INT,grid,size_of_grid*size_of_grid/comm_sz,MPI_INT,0,MPI_COMM_WORLD);
+            MPI_Gather(local_matrix,size_of_grid*size_of_grid/comm_sz,MPI_INT,grid,size_of_grid*size_of_grid/comm_sz,MPI_INT,0,MPI_COMM_WORLD);
+        }
     }
 
     // double elapsed_time=now-before;
@@ -151,5 +153,8 @@ int main(int argc,char**argv){
     free(below_rcv_buff);
     free(above_rcv_buff);
     MPI_Finalize();
+    double after;
+    GET_TIME(after);
+    printf("%lf\n",after-before);
     
 }
