@@ -13,7 +13,7 @@
  Εάν μία μη κατειλημμένη θέση έχει ακριβώς 3 γειτονικούς οργανισμούς, αυτή η θέση θα καταληφθεί στην
 επόμενη γενιά από έναν νέο οργανισμό, δηλαδή ένας οργανισμός γεννιέται.*/
 
-int size_of_grid = 64;
+int size_of_grid;
 
 
 void updating_grid(int* local_matrix,int rows_per_process,const int* below_rcv_buff,const int* above_rcv_buff){
@@ -78,14 +78,19 @@ void updating_grid(int* local_matrix,int rows_per_process,const int* below_rcv_b
     }
 
     memcpy(local_matrix, temp_matrix, rows_per_process * size_of_grid * sizeof(int));
-
+    free(temp_matrix);
 }
 
 
 int main(int argc,char**argv){
     int comm_sz;
     int my_rank; 
+    size_of_grid = 64;
     int births = 1000;
+     if(argc>1){
+        size_of_grid = atol(argv[1]);
+        births = atol(argv[2]);
+    }
     //int size_of_grid=strtol(argv[2],NULL,10);
     int* grid = malloc(size_of_grid* size_of_grid*sizeof(int*));
 
@@ -117,16 +122,15 @@ int main(int argc,char**argv){
    
 
 
-    MPI_Scatter(grid,rows_per_process*size_of_grid/comm_sz,MPI_INT,local_matrix,rows_per_process*size_of_grid/comm_sz, MPI_INT,0,MPI_COMM_WORLD);
+    MPI_Scatter(grid,rows_per_process*size_of_grid,MPI_INT,local_matrix,rows_per_process*size_of_grid, MPI_INT,0,MPI_COMM_WORLD);
 
     int* below_rcv_buff = malloc(size_of_grid * sizeof(int)); //receiving first row from the grid after the current
     int* above_rcv_buff = malloc(size_of_grid * sizeof(int)); //receiving last row from the grid before the current one
 
     // double before,now;
-    if(my_rank>0){
         while(births>0){
             int rank_above = (my_rank == comm_sz - 1)? MPI_PROC_NULL: my_rank + 1;
-            int rank_below = (my_rank == 1) ? MPI_PROC_NULL : my_rank - 1;
+            int rank_below = (my_rank == 0) ? MPI_PROC_NULL : my_rank - 1;
 
             // Send first row of current local grid and receive first row
             MPI_Sendrecv(local_matrix,size_of_grid,MPI_INT,rank_below,0
@@ -137,24 +141,32 @@ int main(int argc,char**argv){
             births--;
             updating_grid(local_matrix,rows_per_process,below_rcv_buff,above_rcv_buff);
 
-            MPI_Gather(local_matrix,size_of_grid*size_of_grid/comm_sz,MPI_INT,grid,size_of_grid*size_of_grid/comm_sz,MPI_INT,0,MPI_COMM_WORLD);
+            MPI_Gather(local_matrix,rows_per_process*size_of_grid,MPI_INT,grid,rows_per_process*size_of_grid,MPI_INT,0,MPI_COMM_WORLD);
         }
-    }
-
-    // double elapsed_time=now-before;
-    // printf("%f",elapsed_time);
-
-    if(my_rank==0){
-        //deallocating the 2d array.
+        MPI_Barrier(MPI_COMM_WORLD);
+    if(my_rank == 0) {
+        for (int row = 0; row < size_of_grid; row++) {
+            for (int col = 0; col < size_of_grid; col++) {
+                printf("%d ", grid[row * size_of_grid + col]);
+            }
+            if(row>10) break;
+            printf("\n");
+        }
         free(grid);
+        double after;
+        GET_TIME(after);
+        printf("\n %lf",after-before);
+
     }
+
+
+   
+
    
     free(local_matrix);
     free(below_rcv_buff);
     free(above_rcv_buff);
     MPI_Finalize();
-    double after;
-    GET_TIME(after);
-    printf("%lf\n",after-before);
+    
     
 }
