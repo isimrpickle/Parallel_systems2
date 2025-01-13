@@ -1,3 +1,7 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include "timer.h"
+
 void vectorXmatrix(int *local_matrix, int *local_result, int *vector, int size_of_matrix) {
     for (int row = 0; row < size_of_matrix; row++) {
         int result = 0;
@@ -14,17 +18,20 @@ int main(int argc,char**argv){
     int comm_sz;
     int my_rank;
 
-    int size_of_matrix = 100;
-    double before;
+    int size_of_matrix = 1000;
 
+    if(argc>1){
+        size_of_matrix = atol(argv[1]);
+    }
+
+    double before;
+    GET_TIME(before);
     int *vector = malloc(sizeof(int) * size_of_matrix);
     int* matrix = malloc(size_of_matrix*size_of_matrix *sizeof(int));
-    int* result = malloc(size_of_matrix); //final result of multiplication
+    int* result = malloc(size_of_matrix *sizeof(int)); //final result of multiplication
 
     printf("Initial matrix\n");
         //Initializing matrix 
-        matrix = malloc(size_of_matrix *size_of_matrix* sizeof(int));
-        result = malloc(size_of_matrix *sizeof(int)); //the final result will be printed here
         for(int row=0;row<size_of_matrix;row++){
             for (int collumn=0;collumn<size_of_matrix;collumn++){
                 matrix[row*size_of_matrix+collumn] = rand()%10;
@@ -43,5 +50,17 @@ int main(int argc,char**argv){
 
 
         vectorXmatrix(matrix,result,vector,size_of_matrix);
+
+        printf("the result is\n");
+        for(int i=0;i<size_of_matrix;i++){
+            printf("[%d]",result[i]);
+        }
+        double after;
+        GET_TIME(after);
+        double elapsed_time = after - before;
+        printf("\n %f",elapsed_time);
+        free(matrix);
+        free(result);
+        free(vector);
 
 }
