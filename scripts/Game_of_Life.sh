@@ -1,5 +1,7 @@
 #!/bin/bash
 
+#Writing into the csv file the Execution time for a given size of matrix with different processes(births were always given with the same value = 1000).
+
 echo -e "Enter the size of matrix you want:"
 read size_of_matrix
 

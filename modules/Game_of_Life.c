@@ -120,7 +120,7 @@ int main(int argc,char**argv){
 
 
    
-
+    //scattering the Initial whole grid into smaller(equal-sized) 1-d arrays.
 
     MPI_Scatter(grid,rows_per_process*size_of_grid,MPI_INT,local_matrix,rows_per_process*size_of_grid, MPI_INT,0,MPI_COMM_WORLD);
 
@@ -132,36 +132,40 @@ int main(int argc,char**argv){
             int rank_above = (my_rank == comm_sz - 1)? MPI_PROC_NULL: my_rank + 1;
             int rank_below = (my_rank == 0) ? MPI_PROC_NULL : my_rank - 1;
 
-            // Send first row of current local grid and receive first row
+            
+            //Send first row to rank below and also receive first row
             MPI_Sendrecv(local_matrix,size_of_grid,MPI_INT,rank_below,0
             ,below_rcv_buff,size_of_grid,MPI_INT,rank_above,0,MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+
+            //Send last row to rank above anf also receive the last  row of the process below you.
 
             MPI_Sendrecv(&local_matrix [(rows_per_process-1)*size_of_grid],size_of_grid,MPI_INT,rank_above,1
             ,above_rcv_buff,size_of_grid,MPI_INT,rank_below,1,MPI_COMM_WORLD, MPI_STATUS_IGNORE);
             births--;
+
             updating_grid(local_matrix,rows_per_process,below_rcv_buff,above_rcv_buff);
 
-            MPI_Gather(local_matrix,rows_per_process*size_of_grid,MPI_INT,grid,rows_per_process*size_of_grid,MPI_INT,0,MPI_COMM_WORLD);
+            // MPI_Gather(local_matrix,rows_per_process*size_of_grid,MPI_INT,grid,rows_per_process*size_of_grid,MPI_INT,0,MPI_COMM_WORLD);
         }
-        MPI_Barrier(MPI_COMM_WORLD);
-    if(my_rank == 0) {
-        for (int row = 0; row < size_of_grid; row++) {
-            for (int col = 0; col < size_of_grid; col++) {
-                printf("%d ", grid[row * size_of_grid + col]);
+
+        //gathering the updated matrix after all the births.
+        MPI_Gather(local_matrix,rows_per_process*size_of_grid,MPI_INT,grid,rows_per_process*size_of_grid,MPI_INT,0,MPI_COMM_WORLD);
+
+        MPI_Barrier(MPI_COMM_WORLD); //sychronizing the processes so I can take a representative result of the execution time(?)
+        if(my_rank == 0) {
+            for (int row = 0; row < size_of_grid; row++) {
+                for (int col = 0; col < size_of_grid; col++) {
+                    printf("%d ", grid[row * size_of_grid + col]);
+                }
+                if(row>10) break;
+                printf("\n");
             }
-            if(row>10) break;
-            printf("\n");
+            free(grid);
+            double after;
+            GET_TIME(after);
+            printf("\n %lf",after-before);
+
         }
-        free(grid);
-        double after;
-        GET_TIME(after);
-        printf("\n %lf",after-before);
-
-    }
-
-
-   
-
    
     free(local_matrix);
     free(below_rcv_buff);

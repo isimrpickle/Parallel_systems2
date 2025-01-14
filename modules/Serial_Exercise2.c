@@ -15,10 +15,8 @@ void vectorXmatrix(int *local_matrix, int *local_result, int *vector, int size_o
 
 
 int main(int argc,char**argv){
-    int comm_sz;
-    int my_rank;
 
-    int size_of_matrix = 1000;
+    int size_of_matrix = 1000; //default
 
     if(argc>1){
         size_of_matrix = atol(argv[1]);

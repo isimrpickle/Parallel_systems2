@@ -1,5 +1,7 @@
 #!/bin/bash
 
+#For a given size_of_matrix execute the instance 3 times and each time write the execution time in the csv file.
+
 echo -e "Enter the size of matrix you want:"
 read size_of_matrix
 
